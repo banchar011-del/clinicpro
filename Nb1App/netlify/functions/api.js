@@ -13,7 +13,7 @@ exports.handler = async (event) => {
         const { action, payload } = body;
 
         // ==========================================
-        // 1. AUTH & STAFF (รวมการเปลี่ยนรูปโปรไฟล์ตัวเอง)
+        // 1. AUTH & STAFF
         // ==========================================
         if (action === 'login') {
             const users = await sql`SELECT id, username, display_name, role, avatar_url FROM users WHERE username = ${payload.username} AND pin_code = ${payload.pin}`;
@@ -30,7 +30,7 @@ exports.handler = async (event) => {
         }
 
         // ==========================================
-        // 2. CATALOG & TIERS
+        // 2. CATALOG & TIERS (เพิ่มค่ามือ BT)
         // ==========================================
         if (action === 'get_catalog') {
             const categories = await sql`SELECT * FROM product_categories ORDER BY id ASC`;
@@ -41,13 +41,13 @@ exports.handler = async (event) => {
         
         if (action === 'manage_catalog') {
             if (payload.type === 'category') await sql`INSERT INTO product_categories (category_name, deduct_cost_percent) VALUES (${payload.name}, ${payload.percent})`;
-            else if (payload.type === 'product') await sql`INSERT INTO products (category_id, product_name, unit_name) VALUES (${payload.categoryId}, ${payload.name}, ${payload.unit})`;
+            else if (payload.type === 'product') await sql`INSERT INTO products (category_id, product_name, unit_name, bt_fee) VALUES (${payload.categoryId}, ${payload.name}, ${payload.unit}, ${payload.bt_fee || 0})`;
             else if (payload.type === 'tier') await sql`INSERT INTO commission_tiers (min_sales, max_sales, commission_percent) VALUES (${payload.min}, ${payload.max || null}, ${payload.percent})`;
             return { statusCode: 200, body: JSON.stringify({ success: true }) };
         }
 
         // ==========================================
-        // 3. ORDERS & PAYMENTS
+        // 3. ORDERS & PAYMENTS (CRM & Finance)
         // ==========================================
         if (action === 'save_order') {
             let customerId;
@@ -87,7 +87,7 @@ exports.handler = async (event) => {
                 await sql`INSERT INTO service_usage (order_id, customer_id, usage_date, details, dr_id, bt_id, created_by) VALUES (${targetOrderId}, ${customerId}, CURRENT_DATE, ${payload.usageDetails}, ${payload.drId||null}, ${payload.btId||null}, ${payload.currentUserId})`;
             }
 
-            // Telegram Notification Logic (Based on Settings)
+            // Telegram Alert Logic
             try {
                 const settings = await sql`SELECT * FROM system_settings LIMIT 1`;
                 if (settings.length > 0 && settings[0].tg_token && settings[0].tg_config) {
@@ -99,7 +99,6 @@ exports.handler = async (event) => {
                         if (tgConfig.fields.name) txt += `👤 ลูกค้า: ${payload.firstName} ${payload.lastName}\n`;
                         if (tgConfig.fields.amount) txt += `💰 ชำระแล้ว: ${parseFloat(payload.paymentAmount).toLocaleString()} ฿\n`;
                         if (tgConfig.fields.staff) txt += `👩‍💼 พนักงาน: ${payload.saleStaffName}\n`;
-                        
                         await fetch(`https://api.telegram.org/bot${settings[0].tg_token}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: settings[0].tg_chat_id, text: txt, parse_mode: 'HTML' }) });
                     }
                     if (payload.usageDetails && !isNewOrder && tgConfig.events.usage) {
@@ -113,7 +112,7 @@ exports.handler = async (event) => {
         }
 
         // ==========================================
-        // 4. SUMMARY & COMMISSION (กรองตามสิทธิ์)
+        // 4. SUMMARY & COMMISSION (รวมค่ามือ BT)
         // ==========================================
         if (action === 'get_sales_summary') {
             const startDate = `${payload.startDate} 00:00:00`; 
@@ -124,15 +123,18 @@ exports.handler = async (event) => {
 
             const orders = await sql`SELECT id, sale_staff_id, items, total_price FROM orders WHERE status != 'Cancelled' AND created_at >= ${startDate}::timestamp AND created_at <= ${endDate}::timestamp`;
             const payments = await sql`SELECT p.order_id, p.amount, p.payment_method FROM payments p JOIN orders o ON p.order_id = o.id WHERE p.created_at >= ${startDate}::timestamp AND p.created_at <= ${endDate}::timestamp`;
+            const usages = await sql`SELECT su.bt_id, o.items FROM service_usage su JOIN orders o ON su.order_id = o.id WHERE su.usage_date >= ${startDate}::date AND su.usage_date <= ${endDate}::date`;
+            
             const tiers = await sql`SELECT * FROM commission_tiers ORDER BY min_sales ASC`;
             const staffList = await sql`SELECT id, display_name FROM users`;
 
             let staffPerfMap = {};
             let shopTotalSales = 0; let shopTotalCollected = 0;
 
+            // 1. คำนวณยอดขาย & ต้นทุน
             orders.forEach(o => {
                 const staffId = o.sale_staff_id;
-                if (!staffPerfMap[staffId]) staffPerfMap[staffId] = { id: staffId, name: staffList.find(s=>s.id===staffId)?.display_name || 'ไม่ระบุ', total_sales: 0, total_collected: 0, total_cost: 0, order_count: 0 };
+                if (!staffPerfMap[staffId]) staffPerfMap[staffId] = { id: staffId, name: staffList.find(s=>s.id===staffId)?.display_name || 'ไม่ระบุ', total_sales: 0, total_collected: 0, total_cost: 0, bt_fee_total: 0, order_count: 0 };
                 
                 let orderCost = 0;
                 if (o.items && Array.isArray(o.items)) { o.items.forEach(item => { orderCost += ((parseFloat(item.total) || 0) * (parseFloat(item.deduct_percent) || 0) / 100); }); }
@@ -143,6 +145,7 @@ exports.handler = async (event) => {
                 shopTotalSales += parseFloat(o.total_price);
             });
 
+            // 2. คำนวณยอดชำระ
             payments.forEach(p => {
                 const order = orders.find(o => o.id === p.order_id);
                 if (order) {
@@ -153,6 +156,19 @@ exports.handler = async (event) => {
                 }
             });
 
+            // 3. คำนวณค่ามือ BT
+            usages.forEach(u => {
+                if (u.bt_id) {
+                    if (!staffPerfMap[u.bt_id]) staffPerfMap[u.bt_id] = { id: u.bt_id, name: staffList.find(s=>s.id===u.bt_id)?.display_name || 'ไม่ระบุ', total_sales: 0, total_collected: 0, total_cost: 0, bt_fee_total: 0, order_count: 0 };
+                    let totalBtFee = 0;
+                    if (u.items && Array.isArray(u.items)) {
+                        u.items.forEach(item => { totalBtFee += (parseFloat(item.bt_fee) || 0) * (parseFloat(item.qty) || 1); });
+                    }
+                    staffPerfMap[u.bt_id].bt_fee_total += totalBtFee;
+                }
+            });
+
+            // 4. สรุปเป็น Array
             let staffPerfArray = Object.values(staffPerfMap).map(sp => {
                 let netCollected = sp.total_collected - sp.total_cost;
                 if (netCollected < 0) netCollected = 0;
@@ -161,10 +177,10 @@ exports.handler = async (event) => {
                 return { ...sp, net_collected: netCollected, commission_percent: parseFloat(matchedTier.commission_percent), commission_amount: netCollected * (parseFloat(matchedTier.commission_percent) / 100) };
             });
 
-            // Role Logic: ถ้าเป็นพนักงานปฏิบัติการ ให้ส่งกลับเฉพาะข้อมูลตัวเอง และซ่อน shopSummary
+            // Role Logic: 
             if (['Sales', 'BT', 'Dr'].includes(payload.userRole)) {
                 staffPerfArray = staffPerfArray.filter(sp => sp.id === payload.userId);
-                shopTotalSales = 0; shopTotalCollected = 0; // ซ่อนยอดร้าน
+                shopTotalSales = 0; shopTotalCollected = 0; 
             }
 
             staffPerfArray.sort((a, b) => b.total_sales - a.total_sales);
@@ -172,7 +188,7 @@ exports.handler = async (event) => {
         }
 
         // ==========================================
-        // 5. APPOINTMENTS & CUSTOMERS (Role Based)
+        // 5. APPOINTMENTS & CUSTOMERS 
         // ==========================================
         if (action === 'get_appointments') {
             const appointments = await sql`SELECT a.id, a.appointment_date, a.appointment_time, a.service_details, a.status, c.first_name, c.last_name, c.phone, c.id as customer_id, u_dr.display_name as dr_name, u_bt.display_name as bt_name, a.dr_id, a.bt_id, a.created_by FROM appointments a JOIN customers c ON a.customer_id = c.id LEFT JOIN users u_dr ON a.dr_id = u_dr.id LEFT JOIN users u_bt ON a.bt_id = u_bt.id WHERE a.status != 'Cancelled' ORDER BY a.appointment_date ASC, a.appointment_time ASC LIMIT 100`;
@@ -182,7 +198,6 @@ exports.handler = async (event) => {
         if (action === 'search_customers') {
             const q = payload.query || '';
             let customers = [];
-            // ถ้าเป็นพนักงานระดับปฏิบัติการ จะค้นหาได้เฉพาะลูกค้าที่ตัวเองเกี่ยวข้อง
             if (['Sales', 'BT', 'Dr'].includes(payload.userRole)) {
                 customers = await sql`
                     SELECT DISTINCT c.* FROM customers c
