@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clinic Manager Pro V4.5</title>
+    <title>Clinic Manager Pro V4.7</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -28,7 +28,6 @@
         .login-input { width: 100%; padding: 14px; margin-bottom: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #fff; text-align: center; font-size: 16px; }
         .login-btn { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-family: 'Prompt'; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.3s; }
         
-        /* Nav & Theming */
         .nav { background: var(--nav-bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .nav-inner { display: flex; align-items: center; padding: 0 10px; overflow-x: auto; max-width: 800px; margin: 0 auto; }
         .nav-tab { padding: 16px 12px; cursor: pointer; font-family: 'Prompt'; font-size: 14px; font-weight: 600; color: var(--nav-text); white-space: nowrap; transition: 0.3s; }
@@ -40,7 +39,6 @@
         .sec { background: var(--surface); border-radius: var(--rs); padding: 18px; margin-bottom: 15px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.02); color: var(--board-text); }
         .sec-label { font-family: 'Prompt'; font-weight: 700; color: var(--primary); font-size: 15px; margin-bottom: 12px; border-bottom: 2px solid var(--border); padding-bottom: 8px; display: flex; align-items: center; gap: 8px;}
         
-        /* Grid System Responsive */
         .fc { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; background: #fafbfe; margin-bottom: 10px; transition: 0.3s; color: var(--text); }
         .fc:focus { border-color: var(--primary); background: #fff; outline:none;}
         .frow { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -51,7 +49,6 @@
         .status-dot.offline { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
         .btn-export { background: #e0f2f1; color: #00695c; padding: 6px 12px; font-size: 12px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
         
-        /* Avatar Upload Wrapper */
         .avatar-wrapper { position: relative; cursor: pointer; }
         .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); background: #eee; transition: 0.2s; }
         .avatar-wrapper:hover .avatar { opacity: 0.7; }
@@ -74,6 +71,14 @@
 
         .tg-box { background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:10px; font-size:13px; }
         .tg-box label { display:flex; align-items:center; gap:8px; margin-bottom:5px; cursor:pointer; }
+        
+        /* สไตล์สำหรับการ์ดอนุมัติการเงิน */
+        .approval-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:15px; box-shadow:0 4px 10px rgba(0,0,0,0.03); border-left:4px solid var(--warning); }
+        .approval-card.history { border-left:4px solid var(--border); opacity: 0.85; }
+        .stat-badge { padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; }
+        .stat-badge.pending { background:#fff3e0; color:#e65100; }
+        .stat-badge.approved { background:#e8f5e9; color:#2e7d32; }
+        .stat-badge.rejected { background:#ffebee; color:#c62828; }
     </style>
 </head>
 <body>
@@ -97,8 +102,7 @@
         <div class="nav-tab active" id="tab-form" onclick="switchPage('form', this)">📝 บันทึก</div>
         <div class="nav-tab" id="tab-appt" onclick="switchPage('appointments', this)">📅 นัดหมาย</div>
         <div class="nav-tab" id="tab-cust" onclick="switchPage('customers', this)">👥 ลูกค้า</div>
-        <div class="nav-tab" id="tab-summary" onclick="switchPage('summary', this)">📊 สรุป</div>
-        <!-- แก้ไข: ซ่อนเป็นค่าเริ่มต้น แต่จะเปิดให้ตอนเช็คสิทธิ์ Owner/Admin ใน JS -->
+        <div class="nav-tab" id="tab-summary" onclick="switchPage('summary', this)">📊 สรุปยอด</div>
         <div class="nav-tab" id="tab-settings" style="display:none;" onclick="switchPage('settings', this)">⚙️ ตั้งค่า</div>
         <div style="margin-left:auto; display:flex; align-items:center; gap:10px;">
             <div class="avatar-wrapper" onclick="document.getElementById('my-avatar-upload').click()">
@@ -184,7 +188,7 @@
             <div class="frow"><label class="btn-sm" style="background:#e2eafc; color:var(--primary-dark); text-align:center; flex:1; cursor:pointer;">📂 เลือกรูป<input type="file" id="f-photo-file" accept="image/*" style="display:none;" onchange="uploadToDrive(this)"></label><label class="btn-sm" style="background:#ffebee; color:#c62828; text-align:center; flex:1; cursor:pointer;">📸 ถ่ายรูป<input type="file" id="f-photo-cam" accept="image/*" capture="environment" style="display:none;" onchange="uploadToDrive(this)"></label></div>
             <div id="upload-status" style="margin-top:8px; font-size:12px; text-align:center; font-weight:600;"></div><input type="hidden" id="f-photo-url">
         </div>
-        <button class="login-btn" id="btn-save" style="margin-bottom:20px; font-size:18px; padding:18px;" onclick="saveFullForm()">💾 บันทึกรายการเข้าระบบ</button>
+        <button class="login-btn" id="btn-save" style="margin-bottom:20px; font-size:18px; padding:18px;" onclick="saveFullForm()">💾 ยืนยันบันทึกเข้าระบบ</button>
     </div>
 
     <!-- ================== PAGE 2: นัดหมาย ================== -->
@@ -214,8 +218,28 @@
         <table id="cust-table-data" style="display:none;"></table>
     </div>
     
-    <!-- ================== PAGE 4: สรุป ================== -->
+    <!-- ================== PAGE 4: สรุป & อนุมัติ ================== -->
     <div id="page-summary" class="page">
+        
+        <!-- แผนกการเงินและอนุมัติ (แสดงเฉพาะ Owner, Admin) -->
+        <div id="finance-approval-section" style="display:none; margin-bottom:20px;">
+            <div class="sec" style="border: 2px solid var(--warning); background:#fffdf7;">
+                <div class="sec-label" style="justify-content:space-between;">
+                    <span>🛡️ ตรวจสอบการเงิน (Finance Approval)</span>
+                    <button onclick="loadApprovals()" style="background:none; border:none; cursor:pointer;">🔄 รีเฟรช</button>
+                </div>
+                
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <button class="btn-sm" id="tab-btn-pending" style="flex:1; background:var(--warning); color:#000;" onclick="switchApprovalTab('pending')">⏳ รอตรวจสอบ</button>
+                    <button class="btn-sm" id="tab-btn-history" style="flex:1; background:#eee; color:var(--text);" onclick="switchApprovalTab('history')">📜 ประวัติย้อนหลัง</button>
+                </div>
+
+                <div id="approval-list-container">
+                    <div style="text-align:center; padding:20px;">กำลังโหลด...</div>
+                </div>
+            </div>
+        </div>
+
         <div class="sec">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <div class="sec-label" style="margin:0;">📊 สรุปยอดขาย & คอมมิชชัน</div>
@@ -223,7 +247,7 @@
             </div>
             
             <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:15px;">
-                <label style="font-size:12px; font-weight:600; color:var(--text2);">กรองตามช่วงวันที่</label>
+                <label style="font-size:12px; font-weight:600; color:var(--text2);">กรองตามช่วงวันที่ (ยอดที่แสดงคือยอดที่อนุมัติแล้วและหักลบย้อนหลังแล้ว)</label>
                 <div class="frow">
                     <div class="fg"><input type="date" class="fc" id="sum-start"></div>
                     <div class="fg"><input type="date" class="fc" id="sum-end"></div>
@@ -232,7 +256,7 @@
             </div>
 
             <div id="sum-shop-area" style="display:flex; gap:10px; margin-bottom:20px;">
-                <div style="flex:1; background:#e3f2fd; padding:15px; border-radius:12px; text-align:center;"><div style="font-size:12px; color:#1565c0;">ยอดขายรวม (เป้าคลินิก)</div><div style="font-size:20px; font-weight:700; color:#0d47a1;" id="sum-shop-sales">0</div></div>
+                <div style="flex:1; background:#e3f2fd; padding:15px; border-radius:12px; text-align:center;"><div style="font-size:12px; color:#1565c0;">ยอดขายรวม (เฉพาะที่อนุมัติ)</div><div style="font-size:20px; font-weight:700; color:#0d47a1;" id="sum-shop-sales">0</div></div>
                 <div style="flex:1; background:#e8f5e9; padding:15px; border-radius:12px; text-align:center;"><div style="font-size:12px; color:#2e7d32;">รับชำระจริง (หัก % บัตร)</div><div style="font-size:20px; font-weight:700; color:#1b5e20;" id="sum-shop-paid">0</div></div>
             </div>
             <div style="overflow-x:auto;">
@@ -266,6 +290,7 @@
                 <div class="fg"><label>ข้อมูลติดต่อ</label><input class="fc" id="set-ui-contact"></div>
                 <div class="fg"><label>โลโก้</label><input type="file" class="fc" accept="image/*" onchange="uploadLogo(this)"><input type="hidden" id="set-ui-logo"></div>
             </div>
+            <button class="btn-sm" style="background:var(--primary); color:#fff; width:100%; padding:10px; margin-top:10px;" onclick="saveUISettings()">💾 บันทึกการตั้งค่า UI & ค่าธรรมเนียม</button>
         </div>
 
         <div class="sec" style="border-left: 4px solid var(--primary-dark);">
@@ -286,29 +311,65 @@
                     <label><input type="checkbox" id="tg-fd-staff" checked> ชื่อพนักงาน</label>
                 </div>
             </div>
-            <button class="login-btn" style="padding:10px; font-size:14px;" onclick="saveUISettings()">💾 บันทึกการตั้งค่าระบบทั้งหมด</button>
+            <button class="btn-sm" style="background:var(--primary); color:#fff; width:100%; padding:10px;" onclick="saveUISettings()">💾 บันทึกตั้งค่า Telegram</button>
         </div>
 
         <div class="sec" style="border-left: 4px solid var(--success);">
-            <div class="sec-label">📦 หมวดหมู่ & สินค้า</div>
-            <div class="frow" style="margin-bottom:10px;"><div class="fg"><input class="fc" id="set-cat-name" placeholder="ชื่อหมวดหมู่"></div><div class="fg" style="flex:0.5"><input class="fc" id="set-cat-pct" type="number" placeholder="% ทุน"></div><button class="btn-sm" style="background:var(--success); color:#fff;" onclick="addCatalog('category')">+ เพิ่ม</button></div>
-            <div class="frow" style="background:#f8f9fa; padding:10px; border-radius:8px;">
-                <div class="fg"><select class="fc" id="set-prod-cat"></select></div>
-                <div class="fg"><input class="fc" id="set-prod-name" placeholder="ชื่อบริการ"></div>
-                <div class="fg" style="flex:0.5"><input class="fc" id="set-prod-unit" placeholder="หน่วย"></div>
-                <div class="fg" style="flex:0.5"><input class="fc" id="set-prod-btfee" type="number" placeholder="ค่ามือ BT"></div>
-                <button class="btn-sm" style="background:var(--primary); color:#fff;" onclick="addCatalog('product')">+ เพิ่ม</button>
+            <div class="sec-label">📦 หมวดหมู่ & สินค้า (ผูกข้อมูลอัตโนมัติ)</div>
+            
+            <!-- เพิ่มหมวดหมู่ -->
+            <div style="background:#e8f5e9; padding:10px; border-radius:8px; margin-bottom:10px;">
+                <div class="frow">
+                    <input type="hidden" id="set-cat-id">
+                    <div class="fg"><label>ชื่อหมวดหมู่หลัก</label><input class="fc" id="set-cat-name" placeholder="ระบุชื่อหมวดหมู่"></div>
+                    <div class="fg" style="flex:0.5"><label>% หักต้นทุน</label><input class="fc" id="set-cat-pct" type="number" placeholder="เช่น 10"></div>
+                    <button class="btn-sm" style="background:var(--success); color:#fff; height:42px; align-self:flex-end;" onclick="saveCategory()">💾 บันทึกหมวดหมู่</button>
+                </div>
+            </div>
+
+            <!-- เพิ่มสินค้า (ผูกกับชื่อหมวดหมู่ด้านบน) -->
+            <div style="background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:15px;">
+                <div class="frow">
+                    <input type="hidden" id="set-prod-id">
+                    <div class="fg"><label style="color:var(--primary);">ชื่อสินค้า (อิงตามหมวดหมู่ด้านบน)</label><input class="fc" id="set-prod-name" placeholder="ระบุชื่อสินค้า/บริการ"></div>
+                    <div class="fg" style="flex:0.5"><label>ชื่อหน่วย</label><input class="fc" id="set-prod-unit" placeholder="เช่น cc, unit"></div>
+                    <div class="fg" style="flex:0.5"><label>ค่ามือ BT</label><input class="fc" id="set-prod-btfee" type="number" placeholder="บาท"></div>
+                    <button class="btn-sm" style="background:var(--primary); color:#fff; height:42px; align-self:flex-end;" onclick="saveProduct()">💾 บันทึกสินค้า</button>
+                </div>
+            </div>
+            
+            <!-- ตารางแสดงสินค้าเพื่อการ แก้ไข/ลบ -->
+            <div style="overflow-x:auto;">
+                <table class="tbl">
+                    <thead><tr><th>ชื่อหมวดหมู่ / สินค้า</th><th>รายละเอียด</th><th>จัดการ</th></tr></thead>
+                    <tbody id="catalog-table"></tbody>
+                </table>
             </div>
         </div>
         
         <div class="sec" style="border-left: 4px solid var(--warning);">
             <div class="sec-label">📈 เกณฑ์คอมมิชชันเซลล์</div>
-            <div class="frow"><div class="fg"><input class="fc" id="set-tier-min" type="number" placeholder="ยอดเริ่ม"></div><div class="fg"><input class="fc" id="set-tier-max" type="number" placeholder="ยอดสุด(ว่าง=unlimit)"></div><div class="fg"><input class="fc" id="set-tier-pct" type="number" placeholder="% คอม"></div><button class="btn-sm" style="background:var(--warning);" onclick="addCatalog('tier')">+ เพิ่ม</button></div>
+            <div class="frow">
+                <input type="hidden" id="set-tier-id">
+                <div class="fg"><label>ยอดขายเริ่ม (บาท)</label><input class="fc" id="set-tier-min" type="number" placeholder="เช่น 0"></div>
+                <div class="fg"><label>ถึงยอดสูงสุด (เว้นว่าง=ไม่จำกัด)</label><input class="fc" id="set-tier-max" type="number" placeholder="เช่น 50000"></div>
+                <div class="fg"><label>ได้คอม (%)</label><input class="fc" id="set-tier-pct" type="number" placeholder="เช่น 3"></div>
+                <button class="btn-sm" style="background:var(--warning); height:42px; align-self:flex-end;" onclick="saveTier()">💾 บันทึกเกณฑ์</button>
+            </div>
+            <div style="overflow-x:auto; margin-top:10px;">
+                <table class="tbl">
+                    <thead><tr><th>ยอดเริ่ม</th><th>ยอดสุด</th><th>% คอม</th><th>จัดการ</th></tr></thead>
+                    <tbody id="tier-table"></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="sec">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><div class="sec-label" style="margin:0;">👥 พนักงาน</div><button class="btn-sm" style="background:var(--primary); color:#fff;" onclick="document.getElementById('modal-staff').style.display='flex'">+ เพิ่ม</button></div>
-            <table class="tbl"><tbody id="staff-table"></tbody></table>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><div class="sec-label" style="margin:0;">👥 พนักงาน</div><button class="btn-sm" style="background:var(--primary); color:#fff;" onclick="openStaffModal()">+ เพิ่มพนักงานใหม่</button></div>
+            <table class="tbl">
+                <thead><tr><th>ชื่อ</th><th>จัดการ</th></tr></thead>
+                <tbody id="staff-table"></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -326,15 +387,20 @@
 </div>
 <div id="modal-staff" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center;">
     <div style="background:#fff; width:90%; max-width:350px; padding:20px; border-radius:12px;">
-        <h3>พนักงานใหม่</h3><input class="fc" id="stf-user" placeholder="Username"><input class="fc" id="stf-pin" placeholder="PIN" maxlength="4" type="tel"><input class="fc" id="stf-name" placeholder="ชื่อเรียก">
+        <h3>จัดการพนักงาน</h3>
+        <input type="hidden" id="stf-id">
+        <input class="fc" id="stf-user" placeholder="Username">
+        <input class="fc" id="stf-pin" placeholder="PIN" maxlength="4" type="tel">
+        <input class="fc" id="stf-name" placeholder="ชื่อเรียก">
         <select class="fc" id="stf-role"><option value="Sales">Sales (เซลล์)</option><option value="BT">BT</option><option value="Dr">Dr</option><option value="Front">Front</option><option value="Manager">Manager</option><option value="Admin">Admin</option></select>
-        <div style="display:flex; gap:10px;"><button class="login-btn" style="background:#ddd; color:#000;" onclick="document.getElementById('modal-staff').style.display='none'">ปิด</button><button class="login-btn" onclick="addStaff()">บันทึก</button></div>
+        <div style="display:flex; gap:10px;"><button class="login-btn" style="background:#ddd; color:#000;" onclick="document.getElementById('modal-staff').style.display='none'">ปิด</button><button class="login-btn" onclick="saveStaff()">บันทึก</button></div>
     </div>
 </div>
 <div id="toast">✅ ทำรายการสำเร็จ</div>
 
 <script>
     let currentUser = null, staffList = [], catalog = { categories: [], products: [], tiers: [] }, systemSettings = {};
+    let currentApprovalTab = 'pending';
     const fxCash = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
     const fxErr = new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3');
     
@@ -358,14 +424,15 @@
     }
 
     async function doLogin() {
+        const btn = document.getElementById('btn-login'); btn.textContent = 'กำลังตรวจสอบ...';
         const res = await apiCall('login', { username: document.getElementById('login-username').value, pin: document.getElementById('login-pin').value });
         if (res.success) {
             currentUser = res.user; document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-nav').style.display = 'block'; document.getElementById('main-content').style.display = 'block';
             document.getElementById('nav-display-name').textContent = currentUser.display_name;
             if(currentUser.avatar_url) document.getElementById('nav-avatar').src = currentUser.avatar_url;
-            await initSystem(); showToast('ยินดีต้อนรับ');
-        } else { fxErr.play(); document.getElementById('login-err').textContent = res.message; }
+            await initSystem(); showToast('ยินดีต้อนรับสู่ระบบ');
+        } else { fxErr.play(); document.getElementById('login-err').textContent = res.message; btn.textContent = 'เข้าสู่ระบบ'; }
     }
 
     async function initSystem() {
@@ -373,30 +440,131 @@
         if(setRes.success && setRes.settings) applyTheme(setRes.settings);
 
         const res = await apiCall('get_staff', {}); if (res.success) { staffList = res.staff; renderSelects(); }
-        const catRes = await apiCall('get_catalog', {}); 
-        if(catRes.success) { 
-            catalog = catRes; 
-            document.getElementById('set-prod-cat').innerHTML = catalog.categories.map(c=>`<option value="${c.id}">${c.category_name} (หัก ${parseFloat(c.deduct_cost_percent)}%)</option>`).join('');
-        }
+        await reloadCatalogData();
         
         const role = currentUser.role;
-        // Role Logic: 
-        // 1. เฉพาะ Owner และ Admin ที่เห็นหน้าตั้งค่า (Settings)
-        if (!['Owner', 'Admin'].includes(role)) {
-            document.getElementById('tab-settings').style.display = 'none';
-        } else {
-            // FIX: สั่งให้แสดงแท็บตั้งค่าได้สำหรับ Owner และ Admin
-            document.getElementById('tab-settings').style.display = 'block';
-            loadAllStaff();
+        // Role Logic 1: ซ่อนหน้าตั้งค่าจาก Front, Manager, Sales, BT, Dr
+        if (!['Owner', 'Admin'].includes(role)) { 
+            document.getElementById('tab-settings').style.display = 'none'; 
+        } else { 
+            document.getElementById('tab-settings').style.display = 'block'; loadAllStaff(); 
         }
 
-        // 2. จำกัดสิทธิ์พนักงานปฏิบัติการ (Ops Staff) ให้ล็อกชื่อในฟอร์ม และซ่อนยอดร้าน
+        // Role Logic 2: ระบบ Finance Approval แสดงเฉพาะ Owner, Admin
+        if (['Owner', 'Admin'].includes(role)) {
+            document.getElementById('finance-approval-section').style.display = 'block';
+            loadApprovals();
+        }
+
+        // Role Logic 3: จำกัดการมองเห็นเซลล์และเป้าร้านสำหรับระดับปฏิบัติการ
         if(['Sales', 'BT', 'Dr'].includes(role)) {
             const s = document.getElementById('f-sale'); s.value = currentUser.id; s.disabled = true; s.style.background = '#eee';
             document.getElementById('sum-shop-area').style.display = 'none';
         }
         
         addItemRow(); loadAppointments();
+    }
+
+    // ====== FINANCE APPROVAL LOGIC ======
+    function switchApprovalTab(tab) {
+        currentApprovalTab = tab;
+        document.getElementById('tab-btn-pending').style.background = tab === 'pending' ? 'var(--warning)' : '#eee';
+        document.getElementById('tab-btn-pending').style.color = tab === 'pending' ? '#000' : 'var(--text)';
+        document.getElementById('tab-btn-history').style.background = tab === 'history' ? 'var(--text2)' : '#eee';
+        document.getElementById('tab-btn-history').style.color = tab === 'history' ? '#fff' : 'var(--text)';
+        loadApprovals();
+    }
+
+    async function loadApprovals() {
+        const container = document.getElementById('approval-list-container');
+        container.innerHTML = '<div style="text-align:center; padding:20px;">กำลังโหลดข้อมูล...</div>';
+        
+        const res = await apiCall('get_approvals', { status: currentApprovalTab });
+        if(res.success) {
+            if(res.list.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text2);">ไม่มีรายการ</div>';
+                return;
+            }
+
+            let html = '';
+            res.list.forEach(p => {
+                let itemsList = '';
+                if(p.items && Array.isArray(p.items)) {
+                    p.items.forEach(i => { itemsList += `<div>- ${i.name} ${i.note ? '('+i.note+')' : ''} ${i.qty||1} ${i.unit||''} = ${(parseFloat(i.total)||0).toLocaleString()}฿</div>`; });
+                }
+
+                let badge = `<span class="stat-badge pending">⏳ รออนุมัติ</span>`;
+                if(p.approval_status === 'Approved') badge = `<span class="stat-badge approved">✅ อนุมัติแล้ว</span>`;
+                if(p.approval_status === 'Rejected') badge = `<span class="stat-badge rejected">❌ ยกเลิกแล้ว</span>`;
+
+                const balance = parseFloat(p.total_price) - parseFloat(p.total_paid);
+
+                html += `
+                <div class="approval-card ${currentApprovalTab === 'history' ? 'history' : ''}">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px dashed var(--border); padding-bottom:10px;">
+                        <div>${badge} <span style="font-size:12px; color:var(--text2); margin-left:5px;">#P-${p.id}</span></div>
+                        <div style="font-size:12px; color:var(--text2);">📅 ${new Date(p.created_at).toLocaleString('th-TH')}</div>
+                    </div>
+                    <div class="frow" style="margin-bottom:10px;">
+                        <div class="fg"><div style="font-size:12px; color:var(--text2);">ลูกค้า</div><div style="font-weight:bold;">${p.first_name} ${p.last_name||''}</div><div style="font-size:12px;">📞 ${p.phone}</div></div>
+                        <div class="fg"><div style="font-size:12px; color:var(--text2);">พนักงานขาย</div><div style="font-weight:bold; color:var(--primary);">${p.sale_name||'-'}</div></div>
+                    </div>
+                    <div style="background:#fafbfe; padding:10px; border-radius:8px; margin-bottom:10px; font-size:13px;">
+                        <div style="font-weight:bold; margin-bottom:5px;">รายการสั่งซื้อรวม ${parseFloat(p.total_price).toLocaleString()}฿:</div>
+                        ${itemsList}
+                        <div style="margin-top:5px; border-top:1px solid #e2e6f0; padding-top:5px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>ยอดชำระรอบนี้: <strong style="color:var(--success); font-size:16px;">${parseFloat(p.amount).toLocaleString()} ฿</strong> (${p.payment_method})</span>
+                            <span style="font-size:12px; color:var(--danger);">ค้างชำระ: ${balance > 0 ? balance.toLocaleString() : 0} ฿</span>
+                        </div>
+                    </div>
+                    ${currentApprovalTab === 'pending' ? `
+                    <div class="frow">
+                        <button class="btn-sm" style="flex:1; background:var(--success); color:#fff; padding:12px; font-size:14px;" onclick="setApproval(${p.id}, ${p.order_id}, 'Approved')">✅ อนุมัติ</button>
+                        <button class="btn-sm" style="flex:1; background:var(--danger); color:#fff; padding:12px; font-size:14px;" onclick="setApproval(${p.id}, ${p.order_id}, 'Rejected')">❌ ยกเลิก (Refund)</button>
+                    </div>` : `
+                    <div style="text-align:right;">
+                        ${p.approval_status === 'Approved' ? `<button class="btn-sm" style="background:#ffebee; color:#c62828;" onclick="if(confirm('ต้องการยกเลิกการอนุมัตินี้ย้อนหลังหรือไม่? (ยอดคอมมิชชันจะถูกหักลบอัตโนมัติ)')) setApproval(${p.id}, ${p.order_id}, 'Rejected')">ย้อนกลับไปยกเลิกยอดนี้</button>` : ''}
+                    </div>
+                    `}
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+    }
+
+    async function setApproval(paymentId, orderId, status) {
+        const res = await apiCall('set_approval', { paymentId, orderId, status });
+        if(res.success) {
+            showToast('อัปเดตสถานะสำเร็จ');
+            loadApprovals();
+            loadSummary(); // Refresh summary automatically
+        }
+    }
+
+    // ====== DYNAMIC LOAD DATA (No Reload) ======
+    async function reloadCatalogData() {
+        const catRes = await apiCall('get_catalog', {}); 
+        if(catRes.success) { 
+            catalog = catRes; 
+            renderCatalogTable();
+            renderTierTable();
+        }
+    }
+
+    function renderCatalogTable() {
+        let html = '';
+        catalog.categories.forEach(c => {
+            html += `<tr style="background:#f0f4ff;"><td style="font-weight:bold; color:var(--primary-dark);">📁 ${c.category_name}</td><td>หักต้นทุน ${parseFloat(c.deduct_cost_percent)}%</td><td><button class="btn-sm" style="background:var(--warning)" onclick="editCategory(${c.id}, '${c.category_name}', ${c.deduct_cost_percent})">แก้ไข</button> <button class="btn-sm" style="background:var(--danger); color:#fff;" onclick="deleteCatalog('category', ${c.id})">ลบ</button></td></tr>`;
+            const prods = catalog.products.filter(p => p.category_id === c.id);
+            prods.forEach(p => { html += `<tr><td style="padding-left:30px;">- ${p.product_name}</td><td>หน่วย: ${p.unit_name||'-'} | ค่ามือ: ${p.bt_fee||0}฿</td><td><button class="btn-sm" style="background:var(--warning)" onclick="editProduct(${p.id}, '${c.category_name}', '${p.product_name}', '${p.unit_name||''}', ${p.bt_fee||0})">แก้ไข</button> <button class="btn-sm" style="background:var(--danger); color:#fff;" onclick="deleteCatalog('product', ${p.id})">ลบ</button></td></tr>`; });
+        });
+        const tbl = document.getElementById('catalog-table'); if(tbl) tbl.innerHTML = html;
+    }
+
+    function renderTierTable() {
+        let html = '';
+        catalog.tiers.forEach(t => { html += `<tr><td>${parseFloat(t.min_sales).toLocaleString()}</td><td>${t.max_sales ? parseFloat(t.max_sales).toLocaleString() : 'ไม่จำกัด'}</td><td>${parseFloat(t.commission_percent)}%</td><td><button class="btn-sm" style="background:var(--warning)" onclick="editTier(${t.id}, ${t.min_sales}, ${t.max_sales||''}, ${t.commission_percent})">แก้ไข</button> <button class="btn-sm" style="background:var(--danger); color:#fff;" onclick="deleteCatalog('tier', ${t.id})">ลบ</button></td></tr>`; });
+        const tbl = document.getElementById('tier-table'); if(tbl) tbl.innerHTML = html;
     }
 
     function applyTheme(s) {
@@ -516,7 +684,8 @@
     }
 
     async function saveFullForm() {
-        const btn = document.getElementById('btn-save'); btn.disabled = true; const t = document.getElementById('f-trans-type').value;
+        const btn = document.getElementById('btn-save'); btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...';
+        const t = document.getElementById('f-trans-type').value;
         const payload = {
             firstName: document.getElementById('f-fn').value, lastName: document.getElementById('f-ln').value, phone: document.getElementById('f-ph').value, emergencyPhone: document.getElementById('f-em-ph').value,
             lineId: document.getElementById('f-line').value, facebook: document.getElementById('f-fb').value,
@@ -543,14 +712,24 @@
                 }
             });
             payload.totalPrice = calcTotal(); 
-            if(!payload.saleStaffId || payload.items.length===0) { showToast('กรุณากรอกเซลล์และรายการสินค้าให้ครบถ้วน', true); fxErr.play(); btn.disabled=false; return; }
+            if(!payload.saleStaffId || payload.items.length===0) { showToast('กรุณากรอกเซลล์และรายการสินค้าให้ครบถ้วน', true); fxErr.play(); btn.textContent = '💾 บันทึกรายการเข้าระบบ'; btn.disabled=false; return; }
         } else { 
-            if(!payload.existingOrderId) { showToast('กรุณาเลือกบิลเก่าก่อนทำรายการ', true); fxErr.play(); btn.disabled=false; return; } 
+            if(!payload.existingOrderId) { showToast('กรุณาเลือกบิลเก่าก่อนทำรายการ', true); fxErr.play(); btn.textContent = '💾 บันทึกรายการเข้าระบบ'; btn.disabled=false; return; } 
         }
 
         const res = await apiCall('save_order', payload);
-        if (res.success) { if(typeof confetti !== 'undefined') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }}); fxCash.play(); showToast('🎉 บันทึกสำเร็จ!'); setTimeout(() => location.reload(), 2500); } 
-        else { showToast('Error', true); fxErr.play(); btn.disabled = false; }
+        if (res.success) { 
+            if(typeof confetti !== 'undefined') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }}); 
+            fxCash.play(); showToast('🎉 บันทึกสำเร็จรอการอนุมัติ!'); 
+            
+            setTimeout(() => {
+                document.getElementById('item-list').innerHTML = ''; addItemRow();
+                ['f-fn','f-ln','f-ph','f-em-ph','f-line','f-fb','f-age','f-weight','f-height','f-disease','f-allergy','f-job','f-workplace','f-address','f-pay-amt','f-usage-detail','f-photo-url','f-total'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
+                document.getElementById('f-pdpa').checked = false; document.getElementById('upload-status').innerHTML = '';
+                btn.textContent = '💾 บันทึกรายการเข้าระบบ'; btn.disabled = false;
+                if(['Owner','Admin'].includes(currentUser.role)) loadApprovals(); // ถ้าแอดมินใช้เองให้รีเฟรชยอดรออนุมัติทันที
+            }, 2000);
+        } else { showToast('Error', true); fxErr.play(); btn.textContent = '💾 บันทึกรายการเข้าระบบ'; btn.disabled = false; }
     }
 
     // --- SUMMARY & APPTS ---
@@ -610,7 +789,7 @@
         document.getElementById('cust-detail-area').innerHTML = html;
     }
 
-    // --- SETTINGS ---
+    // --- SETTINGS (Dynamic Update No Reload) ---
     async function saveUISettings() {
         const p = {
             action: 'save_settings',
@@ -628,6 +807,30 @@
         if(type==='tier') { p.min = document.getElementById('set-tier-min').value; p.max = document.getElementById('set-tier-max').value; p.percent = document.getElementById('set-tier-pct').value; }
         const res = await apiCall('manage_catalog', p); if(res.success) { showToast('บันทึกค่าสำเร็จ'); setTimeout(()=>location.reload(), 1000); }
     }
+
+    function editCategory(id, name, pct) { document.getElementById('set-cat-id').value = id; document.getElementById('set-cat-name').value = name; document.getElementById('set-cat-pct').value = pct; document.getElementById('set-cat-name').focus(); }
+    function editProduct(id, catName, name, unit, bt) { document.getElementById('set-prod-id').value = id; document.getElementById('set-cat-name').value = catName; document.getElementById('set-prod-name').value = name; document.getElementById('set-prod-unit').value = unit; document.getElementById('set-prod-btfee').value = bt; document.getElementById('set-prod-name').focus(); }
+    function editTier(id, min, max, pct) { document.getElementById('set-tier-id').value = id; document.getElementById('set-tier-min').value = min; document.getElementById('set-tier-max').value = max; document.getElementById('set-tier-pct').value = pct; document.getElementById('set-tier-pct').focus(); }
+
+    async function deleteCatalog(type, id) {
+        if(confirm('ยืนยันลบข้อมูลนี้? (อาจมีผลกับประวัติเก่า)')) {
+            const res = await apiCall('manage_catalog', { type, subAction: 'delete', id });
+            if(res.success) { showToast('ลบข้อมูลแล้ว'); await reloadCatalogData(); }
+        }
+    }
+
+    async function loadAllStaff() { 
+        const res = await apiCall('get_staff', {}); 
+        if(res.success) { 
+            staffList = res.staff;
+            document.getElementById('staff-table').innerHTML = res.staff.map(u => `<tr><td>${u.display_name} <div style="font-size:11px; color:var(--text2);">${u.role}</div></td><td><button class="btn-sm" style="background:var(--warning);" onclick="editStaff(${u.id},'${u.username}','${u.pin_code}','${u.display_name}','${u.role}')">แก้ไข</button> <button class="btn-sm" style="background:var(--danger); color:#fff;" onclick="delStaff(${u.id})">ลบ</button></td></tr>`).join(''); 
+        } 
+    }
+    
+    function openStaffModal() { document.getElementById('stf-id').value=''; document.getElementById('stf-user').value=''; document.getElementById('stf-pin').value=''; document.getElementById('stf-name').value=''; document.getElementById('modal-staff').style.display='flex'; }
+    function editStaff(id, usr, pin, name, role) { document.getElementById('stf-id').value=id; document.getElementById('stf-user').value=usr; document.getElementById('stf-pin').value=pin; document.getElementById('stf-name').value=name; document.getElementById('stf-role').value=role; document.getElementById('modal-staff').style.display='flex'; }
+    async function saveStaff() { const p = { subAction: document.getElementById('stf-id').value?'edit':'add', id: document.getElementById('stf-id').value, username: document.getElementById('stf-user').value, pin: document.getElementById('stf-pin').value, name: document.getElementById('stf-name').value, role: document.getElementById('stf-role').value }; const res = await apiCall('manage_staff', p); if(res.success) { showToast('บันทึกพนักงานสำเร็จ'); document.getElementById('modal-staff').style.display='none'; loadAllStaff(); } }
+    async function delStaff(id) { if(confirm('ยืนยันลบพนักงาน?')) { await apiCall('manage_staff', { subAction: 'delete', id }); loadAllStaff(); } }
 
     async function uploadToDrive(input) {
         const file = input.files[0]; if(!file) return; document.getElementById('upload-status').textContent='⏳ กำลังอัปโหลด...';
@@ -648,13 +851,11 @@
     }
     
     async function uploadLogo(input) { const file = input.files[0]; if(!file) return; showToast('กำลังอัปโหลด...'); const r = new FileReader(); r.onload = async(e) => { const res = await apiCall('upload_image', { base64: e.target.result, fileName: `Logo_${Date.now()}.png` }); if(res.success) { document.getElementById('set-ui-logo').value = res.link; showToast('สำเร็จ'); } }; r.readAsDataURL(file); }
-    async function loadAllStaff() { const res = await apiCall('get_staff', {}); if(res.success) { document.getElementById('staff-table').innerHTML = res.staff.map(u => `<tr><td>${u.display_name} <div style="font-size:11px; color:var(--text2);">${u.role}</div></td><td><button class="btn-sm" style="color:red;" onclick="delStaff(${u.id})">ลบ</button></td></tr>`).join(''); } }
-    async function addStaff() { const res = await apiCall('manage_staff', { subAction: 'add', username: document.getElementById('stf-user').value, pin: document.getElementById('stf-pin').value, name: document.getElementById('stf-name').value, role: document.getElementById('stf-role').value }); if(res.success) { showToast('เพิ่มพนักงานสำเร็จ'); document.getElementById('modal-staff').style.display='none'; loadAllStaff(); } }
-    async function delStaff(id) { if(confirm('ยืนยันลบพนักงาน?')) { await apiCall('manage_staff', { subAction: 'delete', id }); loadAllStaff(); } }
+    
     function openApptModal() { document.getElementById('modal-appt').style.display='flex'; }
     async function saveAppointment() { const res = await apiCall('save_appointment', { firstName: document.getElementById('apt-fn').value, lastName: document.getElementById('apt-ln').value, phone: document.getElementById('apt-phone').value, date: document.getElementById('apt-date').value, time: document.getElementById('apt-time').value, details: document.getElementById('apt-detail').value, drId: document.getElementById('apt-dr').value, btId: document.getElementById('apt-bt').value, currentUserId: currentUser.id }); if(res.success) { showToast('นัดหมายแล้ว'); document.getElementById('modal-appt').style.display='none'; loadAppointments(); } }
 
-    function switchPage(p, el) { document.querySelectorAll('.page').forEach(x => x.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(x => x.classList.remove('active')); document.getElementById('page-'+p).classList.add('active'); el.classList.add('active'); }
+    function switchPage(p, el) { document.querySelectorAll('.page').forEach(x => x.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(x => x.classList.remove('active')); document.getElementById('page-'+p).classList.add('active'); el.classList.add('active'); if (p==='summary') { loadSummary(); if(['Owner','Admin'].includes(currentUser.role)) loadApprovals(); } }
     function showToast(m, err=false) { const t = document.getElementById('toast'); t.textContent=m; t.style.background=err?'var(--danger)':'var(--board-text)'; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
     function exportCSV(tid, fn) { 
         let csv = []; let rows = document.querySelectorAll(`#${tid} tr`); 
