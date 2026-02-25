@@ -232,8 +232,26 @@ exports.handler = async (event) => {
         // ☁️ 7. UTILS
         // ==========================================
         if (action === 'upload_image') {
-            if (!process.env.GOOGLE_CREDENTIALS) throw new Error("Missing GDrive Config");
-            const auth = new google.auth.GoogleAuth({ credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS), scopes: ['https://www.googleapis.com/auth/drive.file'] });
+            let credentials;
+            
+            // แยก Environment Variables แบบใหม่ เพื่อแก้ปัญหา 4KB Limit บน Netlify
+            if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+                credentials = {
+                    client_email: process.env.GOOGLE_CLIENT_EMAIL,
+                    // แปลง \n ใน string กลับเป็น newline ของจริง
+                    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n')
+                };
+            } else if (process.env.GOOGLE_CREDENTIALS) {
+                credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+            } else {
+                throw new Error("Missing Google Drive Config: Please set GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY in Netlify");
+            }
+
+            const auth = new google.auth.GoogleAuth({ 
+                credentials, 
+                scopes: ['https://www.googleapis.com/auth/drive.file'] 
+            });
+            
             const drive = google.drive({ version: 'v3', auth });
             const base64Data = payload.base64.replace(/^data:image\/\w+;base64,/, '');
             const buffer = Buffer.from(base64Data, 'base64');
